@@ -3,6 +3,8 @@ import cors from "cors";
 import { MongoClient } from "mongodb";
 import dotenv from "dotenv";
 import joi from "joi";
+import bcrypt from 'bcrypt';
+import { v4 as uuid } from 'uuid';
 
 dotenv.config();
 
@@ -37,11 +39,16 @@ app.post("/login", async (req, res) => {
     try {
         const user = await db.collection("users").findOne({ email });
 
-        if (!user || password !== user.password) {
-            return res.sendStatus(403);
-        }
+        if (user && bcrypt.compareSync(password, user.password)) {
+            const token = uuid();
+            const { name, email } = user;
 
-        return res.sendStatus(200);
+            await db.collection("sessions").insertOne({ token, userId: user._id});
+
+            return res.status(200).send({ name, email, token });
+        } else {
+            return res.status(403).send("Email e/ou senha inválidos.")
+        }
     } catch (error) {
         res.sendStatus(500);
     }
@@ -70,6 +77,8 @@ app.post("/signup", async (req, res) => {
         return res.sendStatus(403);
     }
 
+    const passHash = bcrypt.hashSync(password, 10);
+
     try {
         const existingUser= await db.collection("users").findOne({ email });
 
@@ -77,7 +86,7 @@ app.post("/signup", async (req, res) => {
             return res.sendStatus(409);
         }
 
-        await db.collection("users").insertOne({ name, email, password});
+        await db.collection("users").insertOne({ name, email, password: passHash});
 
         return res.sendStatus(201);
     } catch (error) {
