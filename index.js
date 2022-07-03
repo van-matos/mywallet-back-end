@@ -1,6 +1,6 @@
 import express from "express";
 import cors from "cors";
-import { MongoClient } from "mongodb";
+import { MongoClient, ObjectId } from "mongodb";
 import dotenv from "dotenv";
 import joi from "joi";
 import bcrypt from 'bcrypt';
@@ -94,7 +94,26 @@ app.post("/signup", async (req, res) => {
     }
 });
 
-app.get("/balance", async (req, res) => {});
+app.get("/balance", async (req, res) => {
+    const { authorization } = req.headers;
+    const token = authorization?.replace("Bearer ", "");
+    console.log(token);
+
+    try {
+        const session = await db.collection("sessions").findOne({ token });
+
+        if (!session) {
+            return res.sendStatus(401);
+        }
+
+        const balance = await db.collection("balance").find({ userId: new ObjectId(session.userId) }).toArray();
+
+        res.send(balance);
+    } catch (error) {
+        res.sendStatus(500);
+    }
+});
+
 app.post("/income", async (req, res) => {});
 app.post("/expenditure", async (req, res) => {});
 
