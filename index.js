@@ -89,7 +89,7 @@ app.post("/signup", async (req, res) => {
 
         await db.collection("users").insertOne({ name, email, password: passHash});
 
-        return res.sendStatus(201);
+        res.sendStatus(201);
     } catch (error) {
         res.sendStatus(500);
     }
@@ -109,7 +109,7 @@ app.get("/balance", async (req, res) => {
 
         const balance = await db.collection("balance").find({ userId: new ObjectId(session.userId) }).toArray();
 
-        res.send(balance);
+        res.sendStatus(200);
     } catch (error) {
         res.sendStatus(500);
     }
@@ -146,7 +146,7 @@ app.post("/income", async (req, res) => {
 
         await db.collection("balance").insertOne({ amount, description, type, date, userId: session.userId});
         
-        res.send(201);
+        res.sendStatus(201);
     } catch (error) {
         res.sendStatus(500);
     }
@@ -183,10 +183,30 @@ app.post("/expenditure", async (req, res) => {
 
         await db.collection("balance").insertOne({ amount, description, type, date, userId: session.userId});
         
-        res.send(201);
+        res.sendStatus(201);
     } catch (error) {
         res.sendStatus(500);
     }
 });
+
+app.get("/signout", async (req, res) => {
+    const { authorization } = req.headers;
+    
+    const token = authorization?.replace("Bearer ", "");
+
+    try {
+        const session = await db.collection("sessions").findOne({ token });
+
+        if (!session) {
+            return res.sendStatus(401);
+        }
+
+        await db.collection("sessions").deleteOne({ token });
+
+        res.sendStatus(200);
+    } catch (error) {
+        res.sendStatus(500);
+    }
+})
 
 app.listen(5000, () => console.log("Server on-line."));
