@@ -59,23 +59,18 @@ app.post("/signup", async (req, res) => {
     const signupSchema = joi.object({
         name: joi.string().required(),
         email: joi.string().email().required(),
-        password: joi.string().required(),
-        passConfirm: joi.string().required()
+        password: joi.string().required()
     });
 
-    const { name, email, password, passConfirm } = req.body;
+    const { name, email, password } = req.body;
 
     const validation = signupSchema.validate(
-        { name, email, password, passConfirm },
+        { name, email, password },
         { abortEarly: false }
     );
 
     if (validation.error) {
         return res.sendStatus(422);
-    }
-
-    if (password !== passConfirm) {
-        return res.sendStatus(403);
     }
 
     const passHash = bcrypt.hashSync(password, 10);
