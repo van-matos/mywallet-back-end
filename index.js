@@ -134,7 +134,6 @@ app.post("/income", async (req, res) => {
     );
 
     if (validation.error) {
-        console.log(validation.error.details);
         return res.sendStatus(422);
     }
 
@@ -153,6 +152,41 @@ app.post("/income", async (req, res) => {
     }
 });
 
-app.post("/expenditure", async (req, res) => {});
+app.post("/expenditure", async (req, res) => {
+    const { authorization } = req.headers;
+    const { amount, description, type } = req.body;
+
+    const date = dayjs().format("DD/MM");
+    const token = authorization?.replace("Bearer ", "");
+
+    const expenditureSchema = joi.object({
+        amount: joi.number().required(),
+        description: joi.string().required(),
+        type: joi.string().valid("expenditure").required()
+    });
+
+    const validation = expenditureSchema.validate(
+        { amount, description, type },
+        { abortEarly: false}
+    );
+
+    if (validation.error) {
+        return res.sendStatus(422);
+    }
+
+    try {
+        const session = await db.collection("sessions").findOne({ token });
+
+        if (!session) {
+            return res.sendStatus(401);
+        }
+
+        await db.collection("balance").insertOne({ amount, description, type, date, userId: session.userId});
+        
+        res.send(201);
+    } catch (error) {
+        res.sendStatus(500);
+    }
+});
 
 app.listen(5000, () => console.log("Server on-line."));
