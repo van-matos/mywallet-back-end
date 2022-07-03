@@ -3,8 +3,9 @@ import cors from "cors";
 import { MongoClient, ObjectId } from "mongodb";
 import dotenv from "dotenv";
 import joi from "joi";
-import bcrypt from 'bcrypt';
-import { v4 as uuid } from 'uuid';
+import bcrypt from "bcrypt";
+import { v4 as uuid } from "uuid";
+import dayjs from "dayjs";
 
 dotenv.config();
 
@@ -96,8 +97,8 @@ app.post("/signup", async (req, res) => {
 
 app.get("/balance", async (req, res) => {
     const { authorization } = req.headers;
+
     const token = authorization?.replace("Bearer ", "");
-    console.log(token);
 
     try {
         const session = await db.collection("sessions").findOne({ token });
@@ -114,7 +115,44 @@ app.get("/balance", async (req, res) => {
     }
 });
 
-app.post("/income", async (req, res) => {});
+app.post("/income", async (req, res) => {
+    const { authorization } = req.headers;
+    const { amount, description, type } = req.body;
+
+    const date = dayjs().format("DD/MM");
+    const token = authorization?.replace("Bearer ", "");
+
+    const incomeSchema = joi.object({
+        amount: joi.number().required(),
+        description: joi.string().required(),
+        type: joi.string().valid("income").required()
+    });
+
+    const validation = incomeSchema.validate(
+        { amount, description, type },
+        { abortEarly: false}
+    );
+
+    if (validation.error) {
+        console.log(validation.error.details);
+        return res.sendStatus(422);
+    }
+
+    try {
+        const session = await db.collection("sessions").findOne({ token });
+
+        if (!session) {
+            return res.sendStatus(401);
+        }
+
+        await db.collection("balance").insertOne({ amount, description, type, date, userId: session.userId});
+        
+        res.send(201);
+    } catch (error) {
+        res.sendStatus(500);
+    }
+});
+
 app.post("/expenditure", async (req, res) => {});
 
 app.listen(5000, () => console.log("Server on-line."));
