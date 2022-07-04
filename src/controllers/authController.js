@@ -1,21 +1,9 @@
-import { db } from "../dbStrategy/mongo.js";
+import { db, objectId } from "../dbStrategy/mongo.js";
 import bcrypt from "bcrypt";
 import { v4 as uuid } from "uuid";
 
-import loginSchema from "../schemas/loginSchema.js";
-import signupSchema from "../schemas/signupSchema.js";
-
 export async function userLogin (req, res) {
     const { email, password } = req.body;
-
-    const validation = loginSchema.validate(
-        { email, password },
-        { abortEarly: false }
-    );
-
-    if (validation.error) {
-        return res.sendStatus(422);
-    }
 
     try {
         const user = await db.collection("users").findOne({ email });
@@ -36,16 +24,8 @@ export async function userLogin (req, res) {
 }
 
 export async function userSignup (req, res) {
-    const { name, email, password } = req.body;
-
-    const validation = signupSchema.validate(
-        { name, email, password },
-        { abortEarly: false }
-    );
-
-    if (validation.error) {
-        return res.sendStatus(422);
-    }
+    const user = req.body;
+    const { email, password } = req.body;
 
     const passHash = bcrypt.hashSync(password, 10);
 
@@ -56,7 +36,7 @@ export async function userSignup (req, res) {
             return res.sendStatus(409);
         }
 
-        await db.collection("users").insertOne({ name, email, password: passHash});
+        await db.collection("users").insertOne({ ...user, password: passHash});
 
         res.sendStatus(201);
     } catch (error) {
@@ -65,18 +45,10 @@ export async function userSignup (req, res) {
 }
 
 export async function userSignout(req, res) {
-    const { authorization } = req.headers;
-    
-    const token = authorization?.replace("Bearer ", "");
+    const { user } = res.locals;
 
     try {
-        const session = await db.collection("sessions").findOne({ token });
-
-        if (!session) {
-            return res.sendStatus(401);
-        }
-
-        await db.collection("sessions").deleteOne({ token });
+       await db.collection("sessions").deleteOne({ userId: new objectId(user._id) });
 
         res.sendStatus(200);
     } catch (error) {
