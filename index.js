@@ -104,7 +104,7 @@ app.get("/balance", async (req, res) => {
 
         const balance = await db.collection("balance").find({ userId: new ObjectId(session.userId) }).toArray();
 
-        res.sendStatus(200);
+        res.send(balance);
     } catch (error) {
         res.sendStatus(500);
     }
