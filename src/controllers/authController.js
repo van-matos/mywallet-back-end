@@ -1,14 +1,11 @@
 import { db } from "../dbStrategy/mongo.js";
-import joi from "joi";
 import bcrypt from "bcrypt";
 import { v4 as uuid } from "uuid";
 
-export async function userLogin (req, res) {
-    const loginSchema = joi.object({
-        email: joi.string().email().required(),
-        password: joi.string().required()
-    });
+import loginSchema from "../schemas/loginSchema.js";
+import signupSchema from "../schemas/signupSchema.js";
 
+export async function userLogin (req, res) {
     const { email, password } = req.body;
 
     const validation = loginSchema.validate(
@@ -39,12 +36,6 @@ export async function userLogin (req, res) {
 }
 
 export async function userSignup (req, res) {
-    const signupSchema = joi.object({
-        name: joi.string().required(),
-        email: joi.string().email().required(),
-        password: joi.string().required()
-    });
-
     const { name, email, password } = req.body;
 
     const validation = signupSchema.validate(
