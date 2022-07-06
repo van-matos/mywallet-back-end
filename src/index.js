@@ -15,4 +15,4 @@ app.use(authRouter);
 app.use(transactionRouter);
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log("Server on-line."));
+app.listen(PORT, () => console.log("Server running on port " + PORT));
